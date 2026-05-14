@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quét QR thanh toán · Hà Nguyễn</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #161616; --text: #f7f7f5;
+    --muted: rgba(247,247,245,0.55); --faint: rgba(247,247,245,0.12);
+    --accent: #d4af37; --green: #4ade80;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    min-height: 100vh; padding: clamp(1rem, 4vw, 3rem);
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .brand { font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.75rem; }
+  .brand span { color: var(--accent); }
+  .back { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+
+  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  .order-code {
+    font-family: 'SF Mono', Menlo, monospace; color: var(--accent);
+    font-size: 1rem; letter-spacing: 0.1em; margin-bottom: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--faint);
+    border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+  }
+  .qr-box {
+    background: #fff; border-radius: 14px; padding: 1rem;
+    display: flex; justify-content: center; margin-bottom: 1rem;
+  }
+  .qr-box img { width: 100%; max-width: 320px; height: auto; display: block; }
+
+  .info-grid { display: grid; gap: 0.65rem; }
+  .info-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.92rem; }
+  .info-row .k { color: var(--muted); }
+  .info-row .v { font-weight: 600; word-break: break-all; text-align: right; }
+  .info-row .copy {
+    cursor: pointer; color: var(--accent); font-size: 0.75rem;
+    margin-left: 0.4rem; padding: 2px 6px; border: 1px solid var(--accent);
+    border-radius: 4px;
+  }
+
+  .status {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.85rem 1rem; border-radius: 12px;
+    background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.25);
+    font-size: 0.92rem; margin-bottom: 1rem;
+  }
+  .status.success {
+    background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.35); color: var(--green);
+  }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); animation: pulse 1.4s infinite;
+  }
+  .status.success .dot { background: var(--green); animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .success-box {
+    background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 14px; padding: 1.5rem; text-align: center; display: none;
+  }
+  .success-box.show { display: block; }
+  .success-box h2 { color: var(--green); font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .success-box p { color: var(--text); margin-bottom: 1rem; }
+  .btn {
+    display: inline-block; padding: 0.7rem 1.4rem;
+    background: var(--accent); color: #000; text-decoration: none;
+    border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+    margin: 0.25rem;
+  }
+  .help {
+    font-size: 0.82rem; color: var(--muted); margin-top: 1rem; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">HÀ <span>NGUYỄN</span></div>
+    <a href="/thanh-toan" class="back">← Đơn khác</a>
+  </div>
+
+  <h1>Quét QR để hoàn tất thanh toán</h1>
+  <div class="order-code">Mã đơn: {{ order.order_code }}</div>
+
+  <div class="status" id="status">
+    <div class="dot"></div>
+    <span id="statusText">Đang chờ chuyển khoản... (tự cập nhật khi nhận được tiền)</span>
+  </div>
+
+  <div class="success-box" id="successBox">
+    <h2>✅ Cảm ơn bạn, Hà đã nhận được tiền!</h2>
+    <p>Đơn <strong>{{ order.order_code }}</strong> đã thanh toán thành công.<br>
+    Hà sẽ gửi file/quà tới Zalo của bạn trong vài phút tới.</p>
+    {% if order.product_file %}
+      <a href="{{ order.product_file }}" class="btn">Tải file ngay</a>
+    {% endif %}
+    <a href="/" class="btn">Về trang chủ</a>
+  </div>
+
+  <div class="card" id="paymentCard">
+    <div class="qr-box">
+      <img src="{{ qr_url }}" alt="QR Sepay {{ order.order_code }}">
+    </div>
+
+    <div class="info-grid">
+      <div class="info-row">
+        <span class="k">Ngân hàng</span>
+        <span class="v">{{ bank }} — {{ holder }}</span>
+      </div>
+      <div class="info-row">
+        <span class="k">Số tài khoản</span>
+        <span class="v">{{ acc }} <span class="copy" data-copy="{{ acc }}">Copy</span></span>
+      </div>
+      <div class="info-row">
+        <span class="k">Số tiền</span>
+        <span class="v">{{ '{:,}'.format(order.amount).replace(',', '.') }}đ</span>
+      </div>
+      <div class="info-row">
+        <span class="k">Nội dung CK <strong style="color: var(--accent)">(BẮT BUỘC)</strong></span>
+        <span class="v">{{ order.order_code }} <span class="copy" data-copy="{{ order.order_code }}">Copy</span></span>
+      </div>
+    </div>
+  </div>
+
+  <p class="help">
+    📱 <strong>Cách quét nhanh:</strong> Mở app ngân hàng → chọn "Chuyển tiền QR" → quét ảnh QR này → kiểm tra số tiền + nội dung → xác nhận. Trang sẽ tự nhảy sang "Thành công" khi tiền vào.<br><br>
+    💡 <strong>Tips:</strong> Nội dung chuyển khoản <strong>phải có mã {{ order.order_code }}</strong> để hệ thống nhận diện đúng đơn.
+  </p>
+</div>
+
+<script>
+  // Copy buttons
+  document.querySelectorAll('.copy').forEach(el => {
+    el.addEventListener('click', () => {
+      navigator.clipboard.writeText(el.dataset.copy);
+      const old = el.textContent; el.textContent = '✓ Đã copy';
+      setTimeout(() => el.textContent = old, 1500);
+    });
+  });
+
+  // Poll status mỗi 3 giây
+  const code = "{{ order.order_code }}";
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+  const successBox = document.getElementById('successBox');
+  const paymentCard = document.getElementById('paymentCard');
+
+  async function poll() {
+    try {
+      const r = await fetch(`/api/orders/${code}/status`);
+      const j = await r.json();
+      if (j.ok && j.status === 'success') {
+        statusEl.classList.add('success');
+        statusEl.querySelector('.dot').remove();
+        statusText.textContent = '✓ Đã nhận thanh toán';
+        successBox.classList.add('show');
+        paymentCard.style.opacity = '0.4';
+        return; // dừng polling
+      }
+    } catch (e) {}
+    setTimeout(poll, 3000);
+  }
+  poll();
+</script>
+</body>
+</html>

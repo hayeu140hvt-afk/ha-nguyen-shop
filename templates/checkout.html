@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thanh toán · Hà Nguyễn</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #161616; --text: #f7f7f5;
+    --muted: rgba(247,247,245,0.55); --faint: rgba(247,247,245,0.12);
+    --accent: #d4af37;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    min-height: 100vh; padding: clamp(1rem, 4vw, 3rem);
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .brand { font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.75rem; }
+  .brand span { color: var(--accent); }
+  .back { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+  .back:hover { color: var(--accent); }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 0.5rem; }
+  .sub { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+  .product {
+    background: var(--surface); border: 1px solid var(--faint);
+    border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;
+    cursor: pointer; transition: all 0.15s ease;
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .product:hover { border-color: var(--accent); }
+  .product.selected { border-color: var(--accent); background: rgba(212,175,55,0.06); }
+  .product input { margin-top: 0.35rem; accent-color: var(--accent); }
+  .product-body { flex: 1; }
+  .product h3 { font-size: 1rem; margin-bottom: 0.25rem; }
+  .product .desc { color: var(--muted); font-size: 0.88rem; margin-bottom: 0.5rem; }
+  .product .price { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+  .product .stock { color: var(--muted); font-size: 0.78rem; }
+  form {
+    background: var(--surface); border: 1px solid var(--faint);
+    border-radius: 14px; padding: 1.5rem; margin-top: 1.5rem;
+  }
+  label { display: block; margin-bottom: 1rem; }
+  label > span { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--muted); }
+  input[type=text], input[type=tel], input[type=email] {
+    width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--faint);
+    background: var(--bg); color: var(--text); border-radius: 10px;
+    font-family: inherit; font-size: 0.95rem;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  button.submit {
+    width: 100%; padding: 0.9rem 1.5rem; background: var(--accent); color: #000;
+    border: none; border-radius: 10px; font-weight: 700; font-size: 0.95rem;
+    cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;
+    transition: all 0.15s ease; margin-top: 0.5rem;
+  }
+  button.submit:hover:not(:disabled) { transform: translateY(-1px); }
+  button.submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .err {
+    background: rgba(220,80,80,0.12); border: 1px solid rgba(220,80,80,0.35);
+    border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem;
+    color: #ffb4b4; font-size: 0.88rem; display: none;
+  }
+  .empty {
+    background: var(--surface); border: 1px solid var(--faint);
+    border-radius: 14px; padding: 2rem; text-align: center; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">HÀ <span>NGUYỄN</span></div>
+    <a href="/" class="back">← Về trang chủ</a>
+  </div>
+  <h1>Đặt mua sản phẩm</h1>
+  <p class="sub">Chọn sản phẩm, điền thông tin, quét QR để thanh toán. Đơn được khởi tạo trong vòng 2 giây.</p>
+
+  {% if not products %}
+    <div class="empty">Hiện chưa có sản phẩm. Liên hệ Hà qua Zalo để được tư vấn riêng.</div>
+  {% else %}
+    <form id="orderForm">
+      <div class="err" id="err"></div>
+
+      {% for p in products %}
+      <label class="product" data-pid="{{ p.id }}">
+        <input type="radio" name="product_id" value="{{ p.id }}" {% if loop.first %}checked{% endif %}>
+        <div class="product-body">
+          <h3>{{ p.name }}</h3>
+          {% if p.description %}<div class="desc">{{ p.description }}</div>{% endif %}
+          <div class="price">{{ '{:,}'.format(p.price).replace(',', '.') }}đ</div>
+          <div class="stock">Còn {{ p.stock }} suất</div>
+        </div>
+      </label>
+      {% endfor %}
+
+      <label><span>Họ và tên *</span><input type="text" name="name" required placeholder="Nguyễn Văn A"></label>
+      <label><span>Số điện thoại / Zalo *</span><input type="tel" name="phone" required placeholder="09xxxxxxxx"></label>
+      <label><span>Email (tuỳ chọn — để nhận file)</span><input type="email" name="email" placeholder="ban@email.com"></label>
+
+      <button class="submit" type="submit">Tạo đơn & lấy mã QR</button>
+    </form>
+  {% endif %}
+</div>
+
+<script>
+  // Highlight selected
+  document.querySelectorAll('.product').forEach(card => {
+    const radio = card.querySelector('input[type=radio]');
+    const update = () => {
+      document.querySelectorAll('.product').forEach(c => c.classList.remove('selected'));
+      if (radio.checked) card.classList.add('selected');
+    };
+    card.addEventListener('click', () => { radio.checked = true; update(); });
+    if (radio.checked) update();
+  });
+
+  // Submit form
+  const form = document.getElementById('orderForm');
+  const err = document.getElementById('err');
+  if (form) form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.style.display = 'none';
+    const btn = form.querySelector('button.submit');
+    btn.disabled = true; btn.textContent = 'Đang tạo đơn...';
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    try {
+      const r = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'Có lỗi xảy ra');
+      window.location.href = j.redirect_url;
+    } catch (ex) {
+      err.textContent = ex.message; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Tạo đơn & lấy mã QR';
+    }
+  });
+</script>
+</body>
+</html>

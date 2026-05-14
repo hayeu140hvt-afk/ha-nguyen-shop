@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Hà Nguyễn</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #161616; --bg-elev: #1c1c1c;
+    --text: #f7f7f5; --muted: rgba(247,247,245,0.55); --faint: rgba(247,247,245,0.12);
+    --accent: #d4af37; --green: #4ade80; --red: #f87171; --orange: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+    min-height: 100vh; padding: clamp(0.75rem, 2.5vw, 2rem);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between;
+           margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem; }
+  .brand { font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.75rem; }
+  .brand span { color: var(--accent); }
+  h1 { font-size: 1.6rem; }
+  .bank-info { font-size: 0.8rem; color: var(--muted); }
+  .bank-info b { color: var(--accent); }
+
+  .tabs { display: flex; gap: 0.4rem; border-bottom: 1px solid var(--faint); margin-bottom: 1.5rem; }
+  .tab {
+    padding: 0.7rem 1.2rem; background: none; border: none; color: var(--muted);
+    font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;
+  }
+  .btn {
+    padding: 0.55rem 1rem; background: var(--accent); color: #000;
+    border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--faint); }
+  .btn.danger { background: var(--red); color: #fff; }
+  .btn.small { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface);
+          border-radius: 12px; overflow: hidden; font-size: 0.88rem; }
+  th, td { padding: 0.7rem 0.85rem; text-align: left; border-bottom: 1px solid var(--faint); }
+  th { background: var(--bg-elev); color: var(--muted); font-weight: 600; font-size: 0.75rem;
+       text-transform: uppercase; letter-spacing: 0.05em; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  .status-tag {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 99px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  }
+  .status-pending  { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .status-success  { background: rgba(74,222,128,0.15); color: var(--green); }
+  .status-failed   { background: rgba(248,113,113,0.15); color: var(--red); }
+  .status-cancelled{ background: rgba(247,247,245,0.1); color: var(--muted); }
+
+  .toolbar { display: flex; gap: 0.5rem; align-items: center; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
+    display: none; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 14px; padding: 1.5rem;
+    max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { margin-bottom: 1rem; }
+  .modal label { display: block; margin-bottom: 0.85rem; }
+  .modal label > span { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.3rem; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--faint);
+    background: var(--bg); color: var(--text); border-radius: 8px;
+    font-family: inherit; font-size: 0.9rem;
+  }
+  .modal textarea { min-height: 80px; resize: vertical; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+
+  .empty-row { text-align: center; color: var(--muted); padding: 2rem !important; }
+  .nowrap { white-space: nowrap; }
+  .small { font-size: 0.78rem; color: var(--muted); }
+  .actions { display: flex; gap: 0.3rem; }
+  a.code { color: var(--accent); text-decoration: none; font-family: 'SF Mono', monospace; }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">HÀ <span>NGUYỄN</span> · ADMIN</div>
+      <h1>Bảng điều khiển</h1>
+    </div>
+    <div class="bank-info">
+      Sepay: <b>{{ bank }}</b> · <b>{{ acc }}</b><br>
+      <span>{{ holder }}</span>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="products">Sản phẩm</button>
+    <button class="tab" data-tab="customers">Khách hàng</button>
+    <button class="tab" data-tab="orders">Đơn hàng</button>
+  </div>
+
+  <!-- PRODUCTS -->
+  <section class="panel active" id="panel-products">
+    <div class="panel-head">
+      <div class="toolbar"><span class="small" id="count-products">0 sản phẩm</span></div>
+      <button class="btn" onclick="openProduct()">+ Thêm sản phẩm</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Tên</th><th>Giá</th><th>Tồn kho</th><th>Trạng thái</th><th></th>
+        </tr></thead>
+        <tbody id="tbl-products"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CUSTOMERS -->
+  <section class="panel" id="panel-customers">
+    <div class="panel-head">
+      <div class="toolbar"><span class="small" id="count-customers">0 khách</span></div>
+      <button class="btn" onclick="openCustomer()">+ Thêm khách</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Tên</th><th>SĐT</th><th>Email</th><th>Nguồn</th><th>Ngày</th><th></th>
+        </tr></thead>
+        <tbody id="tbl-customers"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ORDERS -->
+  <section class="panel" id="panel-orders">
+    <div class="panel-head">
+      <div class="toolbar"><span class="small" id="count-orders">0 đơn</span></div>
+      <button class="btn" onclick="openOrder()">+ Thêm đơn</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Mã</th><th>Khách</th><th>Sản phẩm</th><th>Tiền</th>
+          <th>Trạng thái</th><th>Tạo lúc</th><th></th>
+        </tr></thead>
+        <tbody id="tbl-orders"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Product modal -->
+<div class="modal-bg" id="m-product">
+  <div class="modal">
+    <h2 id="m-product-title">Thêm sản phẩm</h2>
+    <form id="f-product">
+      <input type="hidden" name="id">
+      <label><span>Tên *</span><input name="name" required></label>
+      <label><span>Giá (VND) *</span><input name="price" type="number" required></label>
+      <label><span>Mô tả</span><textarea name="description"></textarea></label>
+      <label><span>Link file giao (tuỳ chọn)</span><input name="file_url" placeholder="/downloads/file.pdf"></label>
+      <label><span>Tồn kho</span><input name="stock" type="number" value="999"></label>
+      <label><span><input type="checkbox" name="is_active" checked style="width:auto;margin-right:0.3rem"> Đang bán</span></label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" onclick="closeM('m-product')">Huỷ</button>
+        <button type="submit" class="btn">Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Customer modal -->
+<div class="modal-bg" id="m-customer">
+  <div class="modal">
+    <h2 id="m-customer-title">Thêm khách</h2>
+    <form id="f-customer">
+      <input type="hidden" name="id">
+      <label><span>Họ tên *</span><input name="name" required></label>
+      <label><span>SĐT</span><input name="phone"></label>
+      <label><span>Email</span><input name="email"></label>
+      <label><span>Zalo</span><input name="zalo"></label>
+      <label><span>Nguồn</span><input name="source" placeholder="waitlist / checkout / manual"></label>
+      <label><span>Ghi chú</span><textarea name="notes"></textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" onclick="closeM('m-customer')">Huỷ</button>
+        <button type="submit" class="btn">Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Order modal -->
+<div class="modal-bg" id="m-order">
+  <div class="modal">
+    <h2 id="m-order-title">Thêm đơn</h2>
+    <form id="f-order">
+      <input type="hidden" name="id">
+      <label><span>Sản phẩm *</span><select name="product_id" id="sel-product" required></select></label>
+      <label><span>Họ tên khách *</span><input name="customer_name" required></label>
+      <label><span>SĐT *</span><input name="customer_phone" required></label>
+      <label><span>Email</span><input name="customer_email"></label>
+      <label><span>Số tiền (VND) — bỏ trống để dùng giá sản phẩm</span><input name="amount" type="number"></label>
+      <label><span>Trạng thái</span>
+        <select name="status">
+          <option value="pending">pending</option>
+          <option value="success">success (thanh toán thủ công)</option>
+          <option value="failed">failed</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+      </label>
+      <label><span>Ghi chú</span><textarea name="notes"></textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" onclick="closeM('m-order')">Huỷ</button>
+        <button type="submit" class="btn">Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ===== Tab switching =====
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ===== Helpers =====
+  const VND = n => (Number(n)||0).toLocaleString('vi-VN') + 'đ';
+  const esc = s => (s||'').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function openM(id) { document.getElementById(id).classList.add('show'); }
+  function closeM(id) { document.getElementById(id).classList.remove('show'); }
+
+  // ===== Products =====
+  let productsCache = [];
+  async function loadProducts() {
+    const r = await fetch('/api/admin/products');
+    productsCache = await r.json();
+    document.getElementById('count-products').textContent = productsCache.length + ' sản phẩm';
+    const tb = document.getElementById('tbl-products');
+    if (!productsCache.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty-row">Chưa có sản phẩm. Bấm "+ Thêm sản phẩm".</td></tr>';
+    } else {
+      tb.innerHTML = productsCache.map(p => `
+        <tr>
+          <td>${p.id}</td>
+          <td><b>${esc(p.name)}</b><br><span class="small">${esc((p.description||'').slice(0,80))}</span></td>
+          <td class="nowrap">${VND(p.price)}</td>
+          <td>${p.stock}</td>
+          <td>${p.is_active ? '<span class="status-tag status-success">Đang bán</span>' : '<span class="status-tag status-cancelled">Tắt</span>'}</td>
+          <td class="actions">
+            <button class="btn ghost small" onclick='openProduct(${JSON.stringify(p)})'>Sửa</button>
+            <button class="btn danger small" onclick="delProduct(${p.id})">Xoá</button>
+          </td>
+        </tr>`).join('');
+    }
+    // Update product select in order modal
+    const sel = document.getElementById('sel-product');
+    sel.innerHTML = productsCache.filter(p => p.is_active).map(p =>
+      `<option value="${p.id}">${esc(p.name)} — ${VND(p.price)}</option>`
+    ).join('');
+  }
+
+  function openProduct(p) {
+    const f = document.getElementById('f-product');
+    f.reset();
+    document.getElementById('m-product-title').textContent = p ? 'Sửa sản phẩm' : 'Thêm sản phẩm';
+    if (p) {
+      f.id.value = p.id; f.name.value = p.name; f.price.value = p.price;
+      f.description.value = p.description || ''; f.file_url.value = p.file_url || '';
+      f.stock.value = p.stock; f.is_active.checked = !!p.is_active;
+    }
+    openM('m-product');
+  }
+  document.getElementById('f-product').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const body = {
+      name: f.name.value, price: f.price.value, description: f.description.value,
+      file_url: f.file_url.value, stock: f.stock.value, is_active: f.is_active.checked
+    };
+    const id = f.id.value;
+    const url = id ? `/api/admin/products/${id}` : '/api/admin/products';
+    const method = id ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.ok) { closeM('m-product'); loadProducts(); }
+    else alert(j.error || 'Lỗi');
+  });
+  async function delProduct(id) {
+    if (!confirm('Xoá sản phẩm này?')) return;
+    await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+    loadProducts();
+  }
+
+  // ===== Customers =====
+  async function loadCustomers() {
+    const r = await fetch('/api/admin/customers');
+    const rows = await r.json();
+    document.getElementById('count-customers').textContent = rows.length + ' khách';
+    const tb = document.getElementById('tbl-customers');
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="7" class="empty-row">Chưa có khách hàng.</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td><b>${esc(c.name)}</b>${c.notes ? `<br><span class="small">${esc(c.notes)}</span>` : ''}</td>
+        <td>${esc(c.phone)}</td>
+        <td>${esc(c.email)}</td>
+        <td>${esc(c.source)}</td>
+        <td class="small">${(c.created_at||'').slice(0,16)}</td>
+        <td class="actions">
+          <button class="btn ghost small" onclick='openCustomer(${JSON.stringify(c)})'>Sửa</button>
+          <button class="btn danger small" onclick="delCustomer(${c.id})">Xoá</button>
+        </td>
+      </tr>`).join('');
+  }
+  function openCustomer(c) {
+    const f = document.getElementById('f-customer');
+    f.reset();
+    document.getElementById('m-customer-title').textContent = c ? 'Sửa khách' : 'Thêm khách';
+    if (c) {
+      f.id.value = c.id; f.name.value = c.name; f.phone.value = c.phone || '';
+      f.email.value = c.email || ''; f.zalo.value = c.zalo || '';
+      f.source.value = c.source || ''; f.notes.value = c.notes || '';
+    }
+    openM('m-customer');
+  }
+  document.getElementById('f-customer').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const body = { name: f.name.value, phone: f.phone.value, email: f.email.value,
+                   zalo: f.zalo.value, source: f.source.value, notes: f.notes.value };
+    const id = f.id.value;
+    const url = id ? `/api/admin/customers/${id}` : '/api/admin/customers';
+    const method = id ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.ok) { closeM('m-customer'); loadCustomers(); }
+    else alert(j.error || 'Lỗi');
+  });
+  async function delCustomer(id) {
+    if (!confirm('Xoá khách hàng này?')) return;
+    await fetch(`/api/admin/customers/${id}`, { method: 'DELETE' });
+    loadCustomers();
+  }
+
+  // ===== Orders =====
+  async function loadOrders() {
+    const r = await fetch('/api/admin/orders');
+    const rows = await r.json();
+    document.getElementById('count-orders').textContent = rows.length + ' đơn';
+    const tb = document.getElementById('tbl-orders');
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="7" class="empty-row">Chưa có đơn hàng. Vào /thanh-toan để thử.</td></tr>';
+      return;
+    }
+    tb.innerHTML = rows.map(o => `
+      <tr>
+        <td><a class="code" href="/thanh-toan/${o.order_code}">${o.order_code}</a></td>
+        <td>${esc(o.customer_name)}<br><span class="small">${esc(o.customer_phone)}</span></td>
+        <td>${esc(o.product_name||'-')}</td>
+        <td class="nowrap">${VND(o.amount)}</td>
+        <td><span class="status-tag status-${o.status}">${o.status}</span></td>
+        <td class="small">${(o.created_at||'').slice(0,16)}</td>
+        <td class="actions">
+          ${o.status !== 'success' ? `<button class="btn small" onclick="markPaid(${o.id})">Đánh dấu đã trả</button>` : ''}
+          <button class="btn danger small" onclick="delOrder(${o.id})">Xoá</button>
+        </td>
+      </tr>`).join('');
+  }
+  function openOrder() {
+    const f = document.getElementById('f-order');
+    f.reset();
+    openM('m-order');
+  }
+  document.getElementById('f-order').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const body = { product_id: f.product_id.value, customer_name: f.customer_name.value,
+                   customer_phone: f.customer_phone.value, customer_email: f.customer_email.value,
+                   amount: f.amount.value || null, status: f.status.value, notes: f.notes.value };
+    const r = await fetch('/api/admin/orders', { method: 'POST',
+      headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.ok) { closeM('m-order'); loadOrders(); loadProducts(); }
+    else alert(j.error || 'Lỗi');
+  });
+  async function markPaid(id) {
+    if (!confirm('Đánh dấu đơn này đã thanh toán thủ công?\n(Dùng khi nội dung CK của khách không khớp mã)')) return;
+    await fetch(`/api/admin/orders/${id}`, { method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ status: 'success', notes: '[manual paid]' }) });
+    loadOrders(); loadProducts();
+  }
+  async function delOrder(id) {
+    if (!confirm('Xoá đơn này?')) return;
+    await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' });
+    loadOrders();
+  }
+
+  // Initial load
+  loadProducts(); loadCustomers(); loadOrders();
+  // Auto refresh orders every 5s để bắt đơn mới
+  setInterval(loadOrders, 5000);
+</script>
+</body>
+</html>
